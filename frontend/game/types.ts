@@ -9,8 +9,7 @@ export interface Vector2 {
 export interface PaddleState {
   x: number
   y: number
-  width: number
-  height: number
+  radius: number  // Changed from width/height to radius for circular paddles
 }
 
 export interface PuckState {
@@ -48,14 +47,12 @@ export interface AiRequestPayload {
   human_paddle: {
     x: number
     y: number
-    width: number
-    height: number
+    radius: number  // Changed from width/height to radius
   }
   ai_paddle: {
     x: number
     y: number
-    width: number
-    height: number
+    radius: number  // Changed from width/height to radius
   }
   table_width: number
   table_height: number
@@ -71,8 +68,7 @@ export interface AiResponsePayload {
 export interface GameConfig {
   tableWidth: number
   tableHeight: number
-  paddleWidth: number
-  paddleHeight: number
+  paddleRadius: number  // Changed from paddleWidth/paddleHeight
   puckRadius: number
   puckSpeed: number
   paddleSpeed: number

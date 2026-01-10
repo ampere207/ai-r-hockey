@@ -10,8 +10,7 @@ class Vector2(BaseModel):
 class PaddleState(BaseModel):
     x: float = Field(..., description="Paddle center X position")
     y: float = Field(..., description="Paddle center Y position")
-    width: float = Field(..., description="Paddle width")
-    height: float = Field(..., description="Paddle height")
+    radius: float = Field(..., description="Paddle radius (circular paddles)")
 
 
 class PuckState(BaseModel):

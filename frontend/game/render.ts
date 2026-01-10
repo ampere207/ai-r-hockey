@@ -19,25 +19,40 @@ export function renderTable(
   ctx.stroke()
   ctx.setLineDash([])
 
-  // Goal areas (top and bottom)
-  const goalWidth = 100
+  // Goal areas (top and bottom) - visual representation
+  const goalWidth = 234  // Match physics goal width (increased by 2X)
   const goalCenterX = width / 2
   const goalLeft = goalCenterX - goalWidth / 2
   const goalRight = goalCenterX + goalWidth / 2
 
-  // Top goal (AI)
+  // Top goal (AI) - draw goal box
   ctx.strokeStyle = '#ff6b6b'
-  ctx.lineWidth = 3
+  ctx.lineWidth = 4
   ctx.beginPath()
   ctx.moveTo(goalLeft, 0)
   ctx.lineTo(goalRight, 0)
   ctx.stroke()
+  // Draw goal posts
+  ctx.beginPath()
+  ctx.moveTo(goalLeft, 0)
+  ctx.lineTo(goalLeft, 15)
+  ctx.moveTo(goalRight, 0)
+  ctx.lineTo(goalRight, 15)
+  ctx.stroke()
 
-  // Bottom goal (Human)
+  // Bottom goal (Human) - draw goal box
   ctx.strokeStyle = '#4ecdc4'
+  ctx.lineWidth = 4
   ctx.beginPath()
   ctx.moveTo(goalLeft, height)
   ctx.lineTo(goalRight, height)
+  ctx.stroke()
+  // Draw goal posts
+  ctx.beginPath()
+  ctx.moveTo(goalLeft, height)
+  ctx.lineTo(goalLeft, height - 15)
+  ctx.moveTo(goalRight, height)
+  ctx.lineTo(goalRight, height - 15)
   ctx.stroke()
 
   // Side walls
@@ -84,8 +99,7 @@ export function renderPaddle(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
-  width: number,
-  height: number,
+  radius: number,
   isHuman: boolean = false
 ): void {
   const color = isHuman ? '#4ecdc4' : '#ff6b6b'
@@ -93,31 +107,44 @@ export function renderPaddle(
 
   // Shadow
   ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
-  ctx.fillRect(x - width / 2 + 2, y - height / 2 + 2, width, height)
+  ctx.beginPath()
+  ctx.arc(x + 2, y + 2, radius, 0, Math.PI * 2)
+  ctx.fill()
 
-  // Paddle body
-  const gradient = ctx.createLinearGradient(
-    x - width / 2,
-    y - height / 2,
-    x + width / 2,
-    y + height / 2
+  // Paddle body (circular)
+  const gradient = ctx.createRadialGradient(
+    x - radius / 3,
+    y - radius / 3,
+    0,
+    x,
+    y,
+    radius
   )
   gradient.addColorStop(0, color)
   gradient.addColorStop(1, color + 'cc')
   ctx.fillStyle = gradient
-  ctx.fillRect(x - width / 2, y - height / 2, width, height)
+  ctx.beginPath()
+  ctx.arc(x, y, radius, 0, Math.PI * 2)
+  ctx.fill()
 
   // Border
   ctx.strokeStyle = '#ffffff'
   ctx.lineWidth = 2
-  ctx.strokeRect(x - width / 2, y - height / 2, width, height)
+  ctx.stroke()
 
   // Label
   ctx.fillStyle = '#ffffff'
-  ctx.font = 'bold 12px sans-serif'
+  ctx.font = `bold ${Math.max(8, Math.min(radius / 2.5, 12))}px sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillText(label, x, y)
+  
+  // Add inner circle for better visibility
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.arc(x, y, radius * 0.7, 0, Math.PI * 2)
+  ctx.stroke()
 }
 
 export function renderDebugOverlay(

@@ -24,14 +24,12 @@ export async function requestAiMoveHttp(
     human_paddle: {
       x: state.humanPaddle.x,
       y: state.humanPaddle.y,
-      width: state.humanPaddle.width,
-      height: state.humanPaddle.height,
+      radius: state.humanPaddle.radius,
     },
     ai_paddle: {
       x: state.aiPaddle.x,
       y: state.aiPaddle.y,
-      width: state.aiPaddle.width,
-      height: state.aiPaddle.height,
+      radius: state.aiPaddle.radius,
     },
     table_width: state.tableWidth,
     table_height: state.tableHeight,
@@ -128,14 +126,12 @@ export function sendWebSocketState(state: GameState): void {
     human_paddle: {
       x: state.humanPaddle.x,
       y: state.humanPaddle.y,
-      width: state.humanPaddle.width,
-      height: state.humanPaddle.height,
+      radius: state.humanPaddle.radius,
     },
     ai_paddle: {
       x: state.aiPaddle.x,
       y: state.aiPaddle.y,
-      width: state.aiPaddle.width,
-      height: state.aiPaddle.height,
+      radius: state.aiPaddle.radius,
     },
     table_width: state.tableWidth,
     table_height: state.tableHeight,
@@ -166,17 +162,42 @@ export function clientSideAi(state: GameState): AiResponsePayload {
   const tableHeight = state.tableHeight
 
   const centerLineY = tableHeight / 2
-  const paddleHalfHeight = aiPaddle.height / 2
-  const paddleHalfWidth = aiPaddle.width / 2
+  const paddleRadius = aiPaddle.radius
 
   // Check if puck is in AI's court
   const puckInAiCourt = puck.y < centerLineY
+  
+  // Check if puck is idle
+  const puckSpeed = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy)
+  const puckIsIdle = puckSpeed < 20
+  
+  const distanceToPuck = Math.sqrt(
+    Math.pow(puck.x - aiPaddle.x, 2) + Math.pow(puck.y - aiPaddle.y, 2)
+  )
 
   let targetX: number
   let targetY: number
 
+  // If puck is idle in AI's court, actively hit it!
+  if (puckIsIdle && puckInAiCourt) {
+    // Add human-like variation
+    const humanError = Math.random() * 30 - 15
+    
+    // Position to hit puck downward with force
+    targetX = puck.x + humanError
+    targetY = puck.y - 25
+    
+    targetX = Math.max(
+      paddleRadius,
+      Math.min(tableWidth - paddleRadius, targetX)
+    )
+    targetY = Math.max(
+      paddleRadius,
+      Math.min(centerLineY - paddleRadius, targetY)
+    )
+  }
   // If puck is moving towards AI or in AI's court, be aggressive
-  if (puck.vy < 0 || puckInAiCourt) {
+  else if (puck.vy < 0 || puckInAiCourt) {
     // Aggressive mode: Try to hit the puck back
     const optimalHitY = centerLineY * 0.3 // Upper part of AI's court
     
@@ -193,32 +214,34 @@ export function clientSideAi(state: GameState): AiResponsePayload {
       const predictedX = puck.x + puck.vx * t
       
       // If close to puck, aim slightly ahead
-      const distanceToPuck = Math.sqrt(
-        Math.pow(puck.x - aiPaddle.x, 2) + Math.pow(puck.y - aiPaddle.y, 2)
-      )
       if (distanceToPuck < 150) {
-        targetX = puck.x + puck.vx * 0.1
+        const humanError = Math.random() * 20 - 10
+        targetX = puck.x + puck.vx * 0.1 + humanError
       } else {
         targetX = predictedX
       }
       
       targetX = Math.max(
-        paddleHalfWidth,
-        Math.min(tableWidth - paddleHalfWidth, targetX)
+        paddleRadius,
+        Math.min(tableWidth - paddleRadius, targetX)
       )
       targetY = Math.max(
-        paddleHalfHeight,
-        Math.min(centerLineY - paddleHalfHeight, interceptY)
+        paddleRadius,
+        Math.min(centerLineY - paddleRadius, interceptY)
       )
     } else {
-      // Puck not moving, align and position to hit
+      // Puck not moving horizontally, hit it!
+      const humanError = Math.random() * 40 - 20
+      targetX = puck.x + humanError
+      targetY = puck.y - 30
+      
       targetX = Math.max(
-        paddleHalfWidth,
-        Math.min(tableWidth - paddleHalfWidth, puck.x)
+        paddleRadius,
+        Math.min(tableWidth - paddleRadius, targetX)
       )
       targetY = Math.max(
-        paddleHalfHeight,
-        Math.min(centerLineY - paddleHalfHeight, puck.y - 30)
+        paddleRadius,
+        Math.min(centerLineY - paddleRadius, targetY)
       )
     }
   } else {
@@ -231,8 +254,8 @@ export function clientSideAi(state: GameState): AiResponsePayload {
       const t = (interceptY - puck.y) / puck.vy
       const predictedX = puck.x + puck.vx * t
       targetX = Math.max(
-        paddleHalfWidth,
-        Math.min(tableWidth - paddleHalfWidth, predictedX)
+        paddleRadius,
+        Math.min(tableWidth - paddleRadius, predictedX)
       )
       targetY = interceptY
     }

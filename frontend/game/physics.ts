@@ -6,11 +6,13 @@ export interface CollisionResult {
   newVy?: number
 }
 
-const PUCK_FRICTION = 0.98
+const PUCK_FRICTION = 0.99 // Reduced friction by 50% (was 0.98, now loses 1% instead of 2% per frame)
 const WALL_BOUNCE_DAMPING = 0.95
-const PADDLE_BOUNCE_MULTIPLIER = 1.5 // Increased for better response
-const MIN_PUCK_VELOCITY = 50 // Minimum velocity after paddle hit
-const PADDLE_VELOCITY_TRANSFER = 0.8 // How much paddle velocity transfers to puck
+const PADDLE_BOUNCE_MULTIPLIER = 2.2 // Increased significantly for much faster puck on paddle hits
+const MIN_PUCK_VELOCITY = 50 // Increased minimum velocity for better gameplay
+const PADDLE_VELOCITY_TRANSFER = 1.3 // Increased velocity transfer - harder hits = much faster puck
+const MAX_PUCK_VELOCITY = 1000 // Increased max velocity for even more exciting gameplay
+const COLLISION_PENETRATION_TOLERANCE = 0.5 // Small tolerance to prevent penetration
 
 export function updatePuckPosition(
   puck: PuckState,
@@ -21,8 +23,8 @@ export function updatePuckPosition(
   const newVx = puck.vx * friction
   const newVy = puck.vy * friction
 
-  // Stop very slow movement
-  const minVelocity = 0.5
+  // Stop very slow movement (increased threshold for smoother gameplay)
+  const minVelocity = 1.0
   const finalVx = Math.abs(newVx) < minVelocity ? 0 : newVx
   const finalVy = Math.abs(newVy) < minVelocity ? 0 : newVy
 
@@ -80,46 +82,32 @@ export function checkPaddleCollision(
   paddleVy: number = 0,
   isAi: boolean = false
 ): CollisionResult {
-  const radius = puck.radius
-  const paddleLeft = paddle.x - paddle.width / 2
-  const paddleRight = paddle.x + paddle.width / 2
-  const paddleTop = paddle.y - paddle.height / 2
-  const paddleBottom = paddle.y + paddle.height / 2
-
-  // Find closest point on paddle to puck center
-  const closestX = Math.max(paddleLeft, Math.min(puck.x, paddleRight))
-  const closestY = Math.max(paddleTop, Math.min(puck.y, paddleBottom))
+  const puckRadius = puck.radius
+  const paddleRadius = paddle.radius
   
-  // Calculate distance from puck center to closest point on paddle
-  const dx = puck.x - closestX
-  const dy = puck.y - closestY
+  // Circle-circle collision detection with penetration prevention
+  const dx = puck.x - paddle.x
+  const dy = puck.y - paddle.y
   const distanceSquared = dx * dx + dy * dy
+  const minDistance = puckRadius + paddleRadius
+  const collisionDistance = minDistance - COLLISION_PENETRATION_TOLERANCE
   
-  // Check if puck is colliding (distance less than radius)
-  if (distanceSquared < radius * radius) {
+  // Check if circles are overlapping (with tolerance to prevent penetration)
+  if (distanceSquared < collisionDistance * collisionDistance) {
     const distance = Math.sqrt(distanceSquared)
     
-    // Calculate collision normal
+    // Calculate collision normal (from paddle center to puck center)
     let normalX: number
     let normalY: number
     
     if (distance > 0.001) {
-      // Normal from paddle edge to puck center
+      // Normal from paddle center to puck center (for circle-circle collision)
       normalX = dx / distance
       normalY = dy / distance
     } else {
-      // If puck is exactly on paddle, use direction from paddle center
-      const centerDx = puck.x - paddle.x
-      const centerDy = puck.y - paddle.y
-      const centerDist = Math.sqrt(centerDx * centerDx + centerDy * centerDy)
-      if (centerDist > 0.001) {
-        normalX = centerDx / centerDist
-        normalY = centerDy / centerDist
-      } else {
-        // Fallback: push away from paddle center
-        normalX = 0
-        normalY = isAi ? -1 : 1 // Push away from paddle
-      }
+      // If circles are exactly overlapping, use fallback direction
+      normalX = 0
+      normalY = isAi ? -1 : 1 // Push away from paddle
     }
 
     // Calculate relative velocity
@@ -139,30 +127,41 @@ export function checkPaddleCollision(
       newVx *= PADDLE_BOUNCE_MULTIPLIER
       newVy *= PADDLE_BOUNCE_MULTIPLIER
       
-      // Add paddle velocity transfer
-      newVx += paddleVx * PADDLE_VELOCITY_TRANSFER
-      newVy += paddleVy * PADDLE_VELOCITY_TRANSFER
+      // Add paddle velocity transfer (scales with paddle speed for harder hits)
+      const paddleSpeed = Math.sqrt(paddleVx * paddleVx + paddleVy * paddleVy)
+      const speedMultiplier = 1 + (paddleSpeed / 600) * 1.2 // Even stronger scaling for maximum sensitivity
+      newVx += paddleVx * PADDLE_VELOCITY_TRANSFER * speedMultiplier
+      newVy += paddleVy * PADDLE_VELOCITY_TRANSFER * speedMultiplier
       
-      // Ensure minimum velocity (especially for AI hits)
-      const velocityMagnitude = Math.sqrt(newVx * newVx + newVy * newVy)
+      // Add extra boost based on collision angle (more realistic physics)
+      const impactForce = Math.abs(dotProduct) * 1.5 // Increased impact force
+      newVx += normalX * impactForce * 70 // Increased boost
+      newVy += normalY * impactForce * 70 // Increased boost
+      
+      // Ensure minimum velocity
+      let velocityMagnitude = Math.sqrt(newVx * newVx + newVy * newVy)
       if (velocityMagnitude < MIN_PUCK_VELOCITY) {
         const scale = MIN_PUCK_VELOCITY / velocityMagnitude
         newVx *= scale
         newVy *= scale
+        velocityMagnitude = MIN_PUCK_VELOCITY
       }
       
-      // AI hits harder
+      // Cap maximum velocity for safety
+      if (velocityMagnitude > MAX_PUCK_VELOCITY) {
+        const scale = MAX_PUCK_VELOCITY / velocityMagnitude
+        newVx *= scale
+        newVy *= scale
+      }
+      
+      // AI hits slightly harder (but not too much)
       if (isAi) {
-        const aiBoost = 1.3
+        const aiBoost = 1.15  // Slightly increased for better gameplay
         newVx *= aiBoost
         newVy *= aiBoost
       }
       
-      // Separate puck from paddle to prevent sticking
-      const separation = radius - distance + 2
-      const separationX = normalX * separation
-      const separationY = normalY * separation
-      
+      // Separation is handled in GameCanvas component
       return {
         collided: true,
         newVx,
@@ -178,22 +177,26 @@ export function checkGoal(
   puck: PuckState,
   tableWidth: number,
   tableHeight: number,
-  goalWidth: number = 100
+  goalWidth: number = 234  // Goal width increased by 2X (117 * 2 = 234)
 ): 'human' | 'ai' | null {
   const goalCenterX = tableWidth / 2
   const goalLeft = goalCenterX - goalWidth / 2
   const goalRight = goalCenterX + goalWidth / 2
 
   // AI scores (puck goes past human's goal line at bottom)
-  if (puck.y + puck.radius >= tableHeight) {
-    if (puck.x >= goalLeft && puck.x <= goalRight) {
+  // Check if puck has crossed the bottom edge AND is within goal width
+  if (puck.y + puck.radius >= tableHeight - 1) {  // -1 for tolerance
+    // Check if puck center or any part of puck is within goal area
+    if (puck.x >= goalLeft - puck.radius && puck.x <= goalRight + puck.radius) {
       return 'ai'
     }
   }
 
   // Human scores (puck goes past AI's goal line at top)
-  if (puck.y - puck.radius <= 0) {
-    if (puck.x >= goalLeft && puck.x <= goalRight) {
+  // Check if puck has crossed the top edge AND is within goal width
+  if (puck.y - puck.radius <= 1) {  // +1 for tolerance
+    // Check if puck center or any part of puck is within goal area
+    if (puck.x >= goalLeft - puck.radius && puck.x <= goalRight + puck.radius) {
       return 'human'
     }
   }
@@ -220,25 +223,24 @@ export function clampPaddleToBounds(
   tableHeight: number,
   isHuman: boolean = false
 ): PaddleState {
-  const halfWidth = paddle.width / 2
-  const halfHeight = paddle.height / 2
+  const radius = paddle.radius
   
   // Clamp X position (same for both paddles)
-  const clampedX = Math.max(halfWidth, Math.min(tableWidth - halfWidth, paddle.x))
+  const clampedX = Math.max(radius, Math.min(tableWidth - radius, paddle.x))
   
   // Clamp Y position based on which player
   let clampedY: number
   if (isHuman) {
     // Human paddle: restricted to bottom half of table (their court)
     const centerLine = tableHeight / 2
-    const minY = centerLine + halfHeight // Can't cross center line
-    const maxY = tableHeight - halfHeight // Can't go below table
+    const minY = centerLine + radius // Can't cross center line
+    const maxY = tableHeight - radius // Can't go below table
     clampedY = Math.max(minY, Math.min(maxY, paddle.y))
   } else {
     // AI paddle: restricted to top half of table (their court)
     const centerLine = tableHeight / 2
-    const minY = halfHeight // Can't go above table
-    const maxY = centerLine - halfHeight // Can't cross center line
+    const minY = radius // Can't go above table
+    const maxY = centerLine - radius // Can't cross center line
     clampedY = Math.max(minY, Math.min(maxY, paddle.y))
   }
   

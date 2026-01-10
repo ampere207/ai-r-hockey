@@ -38,7 +38,14 @@ interface GameCanvasProps {
 }
 
 const AI_UPDATE_INTERVAL = 50 // ms
-const PADDLE_SPEED = 500 // pixels per second
+const PADDLE_SPEED = 600 // Increased paddle speed for more responsive gameplay
+
+// Difficulty-based AI paddle speed multipliers
+const AI_SPEED_MULTIPLIERS = {
+  easy: 0.4,    // Much slower for easy mode
+  medium: 0.7,  // Moderate speed
+  hard: 1.0,    // Full speed
+}
 
 export default function GameCanvas({
   gameState,
@@ -175,11 +182,11 @@ export default function GameCanvas({
     const resizeCanvas = () => {
       const container = canvas.parentElement
       if (container) {
-        // Reduced by 15% - was 1200x800, now ~1020x680
+        // Reduced width by 50% - was 850x680, now 425x680
         const containerWidth = container.clientWidth - 40
         const containerHeight = window.innerHeight - 250
-        // Reduced dimensions by 15%
-        const maxWidth = Math.max(850, Math.min(1020, containerWidth))
+        // Width reduced by 50%, height stays the same
+        const maxWidth = Math.max(375, Math.min(425, containerWidth))
         const maxHeight = Math.max(595, Math.min(680, containerHeight))
         // Only resize if dimensions actually changed
         if (canvas.width !== maxWidth || canvas.height !== maxHeight) {
@@ -302,7 +309,10 @@ export default function GameCanvas({
           // Calculate distance for both X and Y
           const distanceX = targetX - currentX
           const distanceY = targetY - currentY
-          const maxMove = PADDLE_SPEED * deltaTime
+          
+          // Apply difficulty-based speed multiplier
+          const speedMultiplier = AI_SPEED_MULTIPLIERS[newState.difficulty] || 0.7
+          const maxMove = PADDLE_SPEED * speedMultiplier * deltaTime
           
           // Move towards target with speed limit
           const moveX = Math.sign(distanceX) * Math.min(Math.abs(distanceX), maxMove)
@@ -333,6 +343,22 @@ export default function GameCanvas({
 
         // Update puck physics
         newState.puck = updatePuckPosition(newState.puck, deltaTime)
+        
+        // Check for goals BEFORE clamping (so puck can cross goal line)
+        const goal = checkGoal(
+          newState.puck,
+          newState.tableWidth,
+          newState.tableHeight
+        )
+        if (goal) {
+          onGoal(goal)
+          setGoalCelebration(goal)
+          setTimeout(() => {
+            setGoalCelebration(null)
+          }, 2000)
+          // Don't update state during goal celebration
+          return
+        }
 
         // Check collisions
         const wallCollision = checkWallCollision(
@@ -359,21 +385,30 @@ export default function GameCanvas({
           false // isAi = false
         )
         if (humanCollision.collided) {
-          newState.puck.vx = humanCollision.newVx ?? newState.puck.vx
-          newState.puck.vy = humanCollision.newVy ?? newState.puck.vy
-          
-          // Separate puck from paddle to prevent sticking
+          // Separate puck from paddle FIRST to prevent penetration
           const dx = newState.puck.x - newState.humanPaddle.x
           const dy = newState.puck.y - newState.humanPaddle.y
           const dist = Math.sqrt(dx * dx + dy * dy)
-          const minDist = newState.puck.radius + Math.max(newState.humanPaddle.width, newState.humanPaddle.height) / 2
-          if (dist < minDist && dist > 0.001) {
-            const normalX = dx / dist
-            const normalY = dy / dist
-            const separation = minDist - dist + 3
-            newState.puck.x = newState.humanPaddle.x + normalX * minDist
-            newState.puck.y = newState.humanPaddle.y + normalY * minDist
+          const minDist = newState.puck.radius + newState.humanPaddle.radius
+          
+          // Force separation if overlapping
+          if (dist < minDist) {
+            if (dist < 0.001) {
+              // If exactly overlapping, push in a direction
+              newState.puck.x = newState.humanPaddle.x
+              newState.puck.y = newState.humanPaddle.y + minDist
+            } else {
+              // Push apart along collision normal
+              const normalX = dx / dist
+              const normalY = dy / dist
+              newState.puck.x = newState.humanPaddle.x + normalX * minDist
+              newState.puck.y = newState.humanPaddle.y + normalY * minDist
+            }
           }
+          
+          // Then apply velocity changes
+          newState.puck.vx = humanCollision.newVx ?? newState.puck.vx
+          newState.puck.vy = humanCollision.newVy ?? newState.puck.vy
         }
 
         const aiCollision = checkPaddleCollision(
@@ -384,38 +419,33 @@ export default function GameCanvas({
           true // isAi = true (hits harder)
         )
         if (aiCollision.collided) {
-          newState.puck.vx = aiCollision.newVx ?? newState.puck.vx
-          newState.puck.vy = aiCollision.newVy ?? newState.puck.vy
-          
-          // Separate puck from paddle to prevent sticking
+          // Separate puck from paddle FIRST to prevent penetration
           const dx = newState.puck.x - newState.aiPaddle.x
           const dy = newState.puck.y - newState.aiPaddle.y
           const dist = Math.sqrt(dx * dx + dy * dy)
-          const minDist = newState.puck.radius + Math.max(newState.aiPaddle.width, newState.aiPaddle.height) / 2
-          if (dist < minDist && dist > 0.001) {
-            const normalX = dx / dist
-            const normalY = dy / dist
-            const separation = minDist - dist + 3
-            newState.puck.x = newState.aiPaddle.x + normalX * minDist
-            newState.puck.y = newState.aiPaddle.y + normalY * minDist
+          const minDist = newState.puck.radius + newState.aiPaddle.radius
+          
+          // Force separation if overlapping
+          if (dist < minDist) {
+            if (dist < 0.001) {
+              // If exactly overlapping, push in a direction
+              newState.puck.x = newState.aiPaddle.x
+              newState.puck.y = newState.aiPaddle.y - minDist
+            } else {
+              // Push apart along collision normal
+              const normalX = dx / dist
+              const normalY = dy / dist
+              newState.puck.x = newState.aiPaddle.x + normalX * minDist
+              newState.puck.y = newState.aiPaddle.y + normalY * minDist
+            }
           }
+          
+          // Then apply velocity changes
+          newState.puck.vx = aiCollision.newVx ?? newState.puck.vx
+          newState.puck.vy = aiCollision.newVy ?? newState.puck.vy
         }
 
-        // Check for goals
-        const goal = checkGoal(
-          newState.puck,
-          newState.tableWidth,
-          newState.tableHeight
-        )
-        if (goal) {
-          onGoal(goal)
-          setGoalCelebration(goal)
-          setTimeout(() => {
-            setGoalCelebration(null)
-          }, 2000)
-          // Don't update state during goal celebration
-          return
-        }
+        // Goals are now checked before clamping (above)
       }
 
       // Render
@@ -431,16 +461,14 @@ export default function GameCanvas({
         ctx,
         newState.humanPaddle.x,
         newState.humanPaddle.y,
-        newState.humanPaddle.width,
-        newState.humanPaddle.height,
+        newState.humanPaddle.radius,
         true
       )
       renderPaddle(
         ctx,
         newState.aiPaddle.x,
         newState.aiPaddle.y,
-        newState.aiPaddle.width,
-        newState.aiPaddle.height,
+        newState.aiPaddle.radius,
         false
       )
       renderDebugOverlay(ctx, aiTarget, showDebug)

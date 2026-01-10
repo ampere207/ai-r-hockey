@@ -1,11 +1,10 @@
 import { GameState, GameConfig, Difficulty, AiMode } from './types'
 
 const DEFAULT_CONFIG: GameConfig = {
-  tableWidth: 1020, // Reduced by 15% from 1200
-  tableHeight: 680,  // Reduced by 15% from 800
-  paddleWidth: 100,
-  paddleHeight: 20,
-  puckRadius: 15,
+  tableWidth: 425, // Reduced by 50% from 850
+  tableHeight: 680,  // Keep height as it was
+  paddleRadius: 35,  // Increased paddle size for better control
+  puckRadius: 15,  // Keep original size
   puckSpeed: 400,
   paddleSpeed: 500,
   friction: 0.98,
@@ -27,14 +26,12 @@ export function createInitialState(config: Partial<GameConfig> = {}): GameState 
     humanPaddle: {
       x: finalConfig.tableWidth / 2,
       y: finalConfig.tableHeight - finalConfig.tableHeight / 4, // Start in middle of human's court
-      width: finalConfig.paddleWidth,
-      height: finalConfig.paddleHeight,
+      radius: finalConfig.paddleRadius,
     },
     aiPaddle: {
       x: finalConfig.tableWidth / 2,
-      y: finalConfig.paddleHeight + 20,
-      width: finalConfig.paddleWidth,
-      height: finalConfig.paddleHeight,
+      y: finalConfig.paddleRadius + 20,
+      radius: finalConfig.paddleRadius,
     },
     tableWidth: finalConfig.tableWidth,
     tableHeight: finalConfig.tableHeight,
@@ -67,7 +64,7 @@ export function resetGameState(state: GameState): GameState {
     aiPaddle: {
       ...state.aiPaddle,
       x: state.tableWidth / 2,
-      y: state.aiPaddle.height + 20,
+      y: state.aiPaddle.radius + 20,
     },
     isPaused: false,
     gameStarted: false,

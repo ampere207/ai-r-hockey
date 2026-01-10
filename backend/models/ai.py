@@ -18,17 +18,51 @@ def rule_based_ai(state: GameState) -> Tuple[float, float]:
     table_height = state.table_height
     
     center_line_y = table_height / 2
-    paddle_half_height = ai_paddle.height / 2
-    paddle_half_width = ai_paddle.width / 2
+    paddle_radius = ai_paddle.radius
     
     # Check if puck is in AI's court (top half)
     puck_in_ai_court = puck.y < center_line_y
+    
+    # Calculate distance to puck
+    distance_to_puck = ((puck.x - ai_paddle.x) ** 2 + (puck.y - ai_paddle.y) ** 2) ** 0.5
+    
+    # Check if puck is idle (very slow or stopped)
+    puck_speed = (puck.vx ** 2 + puck.vy ** 2) ** 0.5
+    puck_is_idle = puck_speed < 20  # Consider idle if speed < 20
     
     # If puck is moving towards AI (upward) or in AI's court
     if puck.vy < 0 or puck_in_ai_court:
         # Aggressive mode: Try to hit the puck back
         
-        if puck.vy != 0:
+        if puck_is_idle and puck_in_ai_court:
+            # Puck is idle in AI's court - actively hit it!
+            import random
+            
+            # Add human-like variation based on difficulty
+            if state.difficulty == "easy":
+                human_error = random.uniform(-25, 25)
+            elif state.difficulty == "medium":
+                human_error = random.uniform(-15, 15)
+            else:  # hard
+                human_error = random.uniform(-8, 8)
+            
+            # Aim slightly behind puck to push it forward
+            target_x = puck.x + human_error
+            
+            # Position paddle to hit puck downward (behind and slightly above)
+            hit_offset_y = 25 + random.uniform(-10, 10)  # Variable hit position
+            target_y = puck.y - hit_offset_y
+            
+            # Ensure we're in valid range
+            target_x = max(
+                paddle_radius,
+                min(table_width - paddle_radius, target_x)
+            )
+            target_y = max(
+                paddle_radius,
+                min(center_line_y - paddle_radius, target_y)
+            )
+        elif puck.vy != 0:
             # Calculate intercept point - try to hit puck when it's in optimal position
             # Aim to hit puck in the upper part of AI's court for better angle
             optimal_hit_y = center_line_y * 0.3  # Upper part of AI's court
@@ -52,23 +86,23 @@ def rule_based_ai(state: GameState) -> Tuple[float, float]:
                 predicted_x = puck.x + puck.vx * 0.1  # Small prediction ahead
             
             target_x = max(
-                paddle_half_width,
-                min(table_width - paddle_half_width, predicted_x)
+                paddle_radius,
+                min(table_width - paddle_radius, predicted_x)
             )
             target_y = max(
-                paddle_half_height,
-                min(center_line_y - paddle_half_height, intercept_y)
+                paddle_radius,
+                min(center_line_y - paddle_radius, intercept_y)
             )
         else:
             # Puck not moving vertically, align with puck and try to hit it
             target_x = max(
-                paddle_half_width,
-                min(table_width - paddle_half_width, puck.x)
+                paddle_radius,
+                min(table_width - paddle_radius, puck.x)
             )
             # Position slightly above puck to hit it downward
             target_y = max(
-                paddle_half_height,
-                min(center_line_y - paddle_half_height, puck.y - 30)
+                paddle_radius,
+                min(center_line_y - paddle_radius, puck.y - 30)
             )
     else:
         # Defensive mode: Puck moving away, position defensively
@@ -84,45 +118,60 @@ def rule_based_ai(state: GameState) -> Tuple[float, float]:
                 t_intercept = (intercept_y - puck.y) / puck.vy
                 predicted_x = puck.x + puck.vx * t_intercept
                 target_x = max(
-                    paddle_half_width,
-                    min(table_width - paddle_half_width, predicted_x)
+                    paddle_radius,
+                    min(table_width - paddle_radius, predicted_x)
                 )
                 target_y = intercept_y
             else:
                 target_x = table_width / 2
                 target_y = center_line_y / 2
     
-    # Apply difficulty modifiers
+    # Apply difficulty modifiers - make easy actually easy!
     difficulty_config = {
         "easy": {
-            "speed_multiplier": 0.6,
-            "noise_range": 30.0,
-            "reaction_delay": 0.1,
+            "speed_multiplier": 0.4,  # Much slower - was 0.6
+            "noise_range": 50.0,  # More error - was 30.0
+            "reaction_delay": 0.2,  # Slower reaction - was 0.1
+            "human_like_variation": 40.0,  # More variation - was 20.0
+            "aggression": 0.6,  # Less aggressive
         },
         "medium": {
-            "speed_multiplier": 0.85,
-            "noise_range": 10.0,
-            "reaction_delay": 0.05,
+            "speed_multiplier": 0.7,  # Moderate speed - was 0.85
+            "noise_range": 20.0,  # Some error - was 10.0
+            "reaction_delay": 0.1,  # Moderate reaction - was 0.05
+            "human_like_variation": 20.0,  # Some variation - was 12.0
+            "aggression": 0.85,  # Moderate aggression
         },
         "hard": {
-            "speed_multiplier": 1.0,
-            "noise_range": 2.0,
-            "reaction_delay": 0.0,
+            "speed_multiplier": 1.0,  # Full speed
+            "noise_range": 5.0,  # Minimal error - was 2.0
+            "reaction_delay": 0.0,  # Instant reaction
+            "human_like_variation": 8.0,  # Less variation - was 5.0
+            "aggression": 1.0,  # Full aggression
         },
     }
     
     config = difficulty_config[state.difficulty]
     
-    # Add noise (random error)
+    # Apply speed multiplier to target (slower AI moves slower)
+    # This affects how fast AI paddle moves, not just noise
     import random
+    
+    # Add human-like noise (random error) - more variation for realism
     noise = random.uniform(-config["noise_range"], config["noise_range"])
-    target_x += noise
+    human_variation = random.uniform(-config["human_like_variation"], config["human_like_variation"])
+    
+    # Apply noise and variation
+    target_x += noise + human_variation * 0.3
+    
+    # For easy mode, make AI less aggressive - sometimes miss optimal position
+    if state.difficulty == "easy" and random.random() < 0.3:  # 30% chance to be less accurate
+        target_x += random.uniform(-30, 30)
     
     # Clamp final target to table bounds
-    paddle_half_width = ai_paddle.width / 2
     target_x = max(
-        paddle_half_width,
-        min(table_width - paddle_half_width, target_x)
+        paddle_radius,
+        min(table_width - paddle_radius, target_x)
     )
     
     return target_x, target_y
