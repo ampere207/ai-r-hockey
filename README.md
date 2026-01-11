@@ -1,19 +1,21 @@
 # 🏒 AI Air Hockey Game
 
-A production-quality, real-time air hockey game featuring human vs AI gameplay. Built with modern web technologies for smooth 60 FPS gameplay, realistic physics, and intelligent AI opponents.
+A production-quality, real-time air hockey game featuring human vs AI gameplay. Built with modern web technologies for smooth 60 FPS gameplay, realistic physics, and intelligent AI opponents powered by **heuristic rule-based prediction**.
 
-![Game Preview](https://img.shields.io/badge/Status-Production%20Ready-success) ![Next.js](https://img.shields.io/badge/Next.js-14+-black) ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)
+![Game Preview](https://img.shields.io/badge/Status-Production%20Ready-success) ![Next.js](https://img.shields.io/badge/Next.js-14+-black) ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue) ![Python](https://img.shields.io/badge/Python-3.10+-yellow) ![WebSocket](https://img.shields.io/badge/WebSocket-Enabled-purple)
 
 ## 🎮 What It Does
 
-This is a fully playable 2D air hockey game where you compete against an AI opponent. The game features:
+This is a fully playable 2D air hockey game where you compete against an AI opponent powered by **heuristic rule-based prediction algorithms**. The game features:
 
 - **Realistic Physics**: Smooth puck movement with friction, collisions, and velocity transfer
 - **Intelligent AI**: Rule-based opponent with three difficulty levels (Easy, Medium, Hard)
+- **Heuristic Prediction**: AI predicts puck trajectories and intercepts with smart positioning
 - **Responsive Controls**: Mouse and touch support for paddle control
-- **Real-time Communication**: HTTP polling or WebSocket for AI updates
+- **Real-time Communication**: HTTP polling or WebSocket for ultra-low latency AI updates
 - **Visual Feedback**: Goal celebrations, score tracking, and debug overlays
 - **Cross-platform**: Works on desktop and mobile browsers
+- **Modern UI**: Beautiful landing page with animated backgrounds and tech stack showcase
 
 ## ✨ Key Features
 
@@ -25,11 +27,16 @@ This is a fully playable 2D air hockey game where you compete against an AI oppo
 - **Goal Detection**: Accurate collision detection with visual goal posts
 
 ### AI Opponent
+- **Heuristic Rule-based Prediction**: Advanced algorithm that predicts puck trajectories and calculates optimal intercept points
 - **Three Difficulty Levels**:
-  - **Easy**: 40% speed, large errors, 0.2s delay - Perfect for beginners
-  - **Medium**: 70% speed, moderate errors, 0.1s delay - Balanced challenge
-  - **Hard**: 100% speed, minimal errors, instant reactions - Maximum challenge
-- **Smart Behavior**: Actively hits idle pucks, predicts trajectories, and adapts to game state
+  - **Easy**: 40% speed, large errors (±50px), 0.2s delay - Perfect for beginners
+  - **Medium**: 70% speed, moderate errors (±20px), 0.1s delay - Balanced challenge
+  - **Hard**: 100% speed, minimal errors (±5px), instant reactions - Maximum challenge
+- **Smart Behavior**: 
+  - Actively hits idle pucks in AI's court
+  - Predicts puck trajectory using physics calculations
+  - Adapts positioning based on game state
+  - Accounts for difficulty modifiers (speed, noise, delay)
 - **Human-like Variation**: Random errors and reaction delays for realistic gameplay
 
 ### Settings & Options
@@ -40,15 +47,21 @@ This is a fully playable 2D air hockey game where you compete against an AI oppo
 
 ## 🛠️ Tech Stack
 
-- **Frontend**:
-  - Next.js 14+ (App Router)
-  - TypeScript
-  - TailwindCSS
-  - HTML5 Canvas for rendering
-- **Backend**:
-  - FastAPI (Python)
-  - Pydantic for data validation
-  - WebSockets for real-time communication
+### Frontend
+- **⚛️ Next.js 14+** - React framework with App Router
+- **🎨 Game Canvas** - HTML5 Canvas for smooth 60 FPS rendering
+- **TypeScript** - Type-safe JavaScript
+- **TailwindCSS** - Utility-first CSS framework
+
+### Backend
+- **🚀 FastAPI** - Modern Python web framework
+- **🐍 Python 3.10+** - Backend programming language
+- **🔌 WebSocket** - Real-time bidirectional communication
+- **Pydantic** - Data validation and settings management
+
+### AI & Development
+- **🧠 Heuristic Rule-based Prediction** - AI algorithm for opponent behavior
+- **💻 PyCharm** - Python IDE for backend development
 - **Package Managers**:
   - `pnpm` (frontend)
   - `uv` (backend)
@@ -193,7 +206,7 @@ ai-r-hockey/
 ### Communication Methods
 
 - **HTTP Polling** (Default): Simple, reliable, sends requests every 50ms
-- **WebSocket**: Lower latency, more efficient, real-time bidirectional communication
+- **🔌 WebSocket**: Lower latency, more efficient, real-time bidirectional communication for smoother gameplay
 
 ### Debug Mode
 
@@ -229,12 +242,19 @@ Useful for understanding AI behavior and learning game mechanics.
 
 ### AI Implementation Details
 
-The rule-based AI:
-1. Detects if puck is idle in AI's court and actively hits it
-2. Predicts where puck will cross AI's defending line
-3. Calculates optimal intercept point
-4. Applies difficulty modifiers (speed, noise, delay)
-5. Clamps to table bounds and paddle speed limits
+The **heuristic rule-based prediction** AI uses the following algorithm:
+
+1. **Court Detection**: Detects if puck is idle in AI's court and actively hits it
+2. **Trajectory Prediction**: Predicts where puck will cross AI's defending line using physics calculations
+3. **Intercept Calculation**: Calculates optimal intercept point based on puck velocity and position
+4. **Difficulty Application**: Applies difficulty modifiers:
+   - Speed multiplier (40-100% based on difficulty)
+   - Random noise (±5px to ±50px)
+   - Reaction delay (0-200ms)
+5. **Boundary Clamping**: Ensures paddle stays within table bounds and respects speed limits
+6. **Human-like Behavior**: Adds random variations for more realistic gameplay
+
+The AI is implemented in `backend/models/ai.py` using Python, with a client-side fallback in `frontend/game/aiClient.ts` for offline play.
 
 ## 🔧 Development
 
@@ -323,6 +343,19 @@ uv run uvicorn main:app --host 0.0.0.0 --port 8000
 
 Update `NEXT_PUBLIC_API_BASE_URL` to point to your production backend URL.
 
+## 🎨 UI/UX Features
+
+- **Modern Landing Page**: 
+  - Animated gradient background with floating blobs
+  - Tech stack badges showcasing all technologies
+  - Glassmorphism effects with backdrop blur
+  - Responsive design for all screen sizes
+- **Game Interface**:
+  - Clean HUD with scores and game info
+  - Settings panel with easy-to-use controls
+  - Debug overlay for AI visualization
+  - Smooth animations and transitions
+
 ## 🔮 Future Enhancements
 
 - [ ] Implement actual ML model for model-based AI mode
@@ -333,6 +366,7 @@ Update `NEXT_PUBLIC_API_BASE_URL` to point to your production backend URL.
 - [ ] Tournament mode with AI difficulty progression
 - [ ] Leaderboard and statistics tracking
 - [ ] Replay system
+- [ ] Enhanced AI with machine learning models
 
 ## 📄 License
 
