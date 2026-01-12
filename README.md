@@ -218,20 +218,18 @@ Useful for understanding AI behavior and learning game mechanics.
 
 ## 🏗️ Architecture
 
-### Frontend Architecture
+For detailed system architecture documentation, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
+### Quick Architecture Overview
+
+**Frontend Architecture:**
 - **Game Loop**: `requestAnimationFrame` for 60 FPS rendering
-- **Physics Engine**: Deterministic physics with:
-  - Friction (0.99 per frame)
-  - Wall collisions with damping
-  - Circle-circle paddle collisions
-  - Velocity transfer from paddle movement
+- **Physics Engine**: Deterministic physics with friction, collisions, and velocity transfer
 - **State Management**: Centralized game state with React hooks
 - **AI Integration**: Separate timer (50ms) for AI updates with interpolation
 - **Input Handling**: Mouse and touch support with smooth interpolation
 
-### Backend Architecture
-
+**Backend Architecture:**
 - **API Endpoints**:
   - `POST /ai/move` - HTTP endpoint for AI move computation
   - `WebSocket /ws/ai` - Real-time bidirectional communication
@@ -240,19 +238,13 @@ Useful for understanding AI behavior and learning game mechanics.
   - **Rule-based**: Predicts puck trajectory, intercepts with difficulty modifiers
   - **Model-based stub**: Structured for easy ML model integration
 
-### AI Implementation Details
-
-The **heuristic rule-based prediction** AI uses the following algorithm:
-
-1. **Court Detection**: Detects if puck is idle in AI's court and actively hits it
-2. **Trajectory Prediction**: Predicts where puck will cross AI's defending line using physics calculations
-3. **Intercept Calculation**: Calculates optimal intercept point based on puck velocity and position
-4. **Difficulty Application**: Applies difficulty modifiers:
-   - Speed multiplier (40-100% based on difficulty)
-   - Random noise (±5px to ±50px)
-   - Reaction delay (0-200ms)
-5. **Boundary Clamping**: Ensures paddle stays within table bounds and respects speed limits
-6. **Human-like Behavior**: Adds random variations for more realistic gameplay
+**AI Implementation:**
+The **heuristic rule-based prediction** AI:
+1. Detects game situation (puck position, velocity, idle state)
+2. Predicts trajectory using physics calculations
+3. Calculates optimal intercept point
+4. Applies difficulty modifiers (speed, noise, delay, miss chance)
+5. Clamps to boundaries and returns target position
 
 The AI is implemented in `backend/models/ai.py` using Python, with a client-side fallback in `frontend/game/aiClient.ts` for offline play.
 
