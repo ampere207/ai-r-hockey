@@ -126,27 +126,27 @@ def rule_based_ai(state: GameState) -> Tuple[float, float]:
                 target_x = table_width / 2
                 target_y = center_line_y / 2
     
-    # Apply difficulty modifiers - make easy actually easy!
+    # Apply difficulty modifiers - make easy and medium much easier!
     difficulty_config = {
         "easy": {
-            "speed_multiplier": 0.4,  # Much slower - was 0.6
-            "noise_range": 50.0,  # More error - was 30.0
-            "reaction_delay": 0.2,  # Slower reaction - was 0.1
-            "human_like_variation": 40.0,  # More variation - was 20.0
-            "aggression": 0.6,  # Less aggressive
+            "speed_multiplier": 0.25,  # Very slow - much easier to beat
+            "noise_range": 80.0,  # Large errors - AI misses often
+            "reaction_delay": 0.3,  # Slow reaction time
+            "human_like_variation": 60.0,  # High variation - unpredictable
+            "aggression": 0.5,  # Less aggressive
         },
         "medium": {
-            "speed_multiplier": 0.7,  # Moderate speed - was 0.85
-            "noise_range": 20.0,  # Some error - was 10.0
-            "reaction_delay": 0.1,  # Moderate reaction - was 0.05
-            "human_like_variation": 20.0,  # Some variation - was 12.0
-            "aggression": 0.85,  # Moderate aggression
+            "speed_multiplier": 0.5,  # Slower than before - more beatable
+            "noise_range": 40.0,  # Moderate errors - AI makes mistakes
+            "reaction_delay": 0.15,  # Slower reaction
+            "human_like_variation": 35.0,  # More variation
+            "aggression": 0.75,  # Moderate aggression
         },
         "hard": {
             "speed_multiplier": 1.0,  # Full speed
-            "noise_range": 5.0,  # Minimal error - was 2.0
+            "noise_range": 5.0,  # Minimal error
             "reaction_delay": 0.0,  # Instant reaction
-            "human_like_variation": 8.0,  # Less variation - was 5.0
+            "human_like_variation": 8.0,  # Less variation
             "aggression": 1.0,  # Full aggression
         },
     }
@@ -164,9 +164,13 @@ def rule_based_ai(state: GameState) -> Tuple[float, float]:
     # Apply noise and variation
     target_x += noise + human_variation * 0.3
     
-    # For easy mode, make AI less aggressive - sometimes miss optimal position
-    if state.difficulty == "easy" and random.random() < 0.3:  # 30% chance to be less accurate
-        target_x += random.uniform(-30, 30)
+    # For easy mode, make AI less aggressive - often miss optimal position
+    if state.difficulty == "easy" and random.random() < 0.5:  # 50% chance to be less accurate
+        target_x += random.uniform(-50, 50)  # Larger miss range
+    
+    # For medium mode, sometimes miss optimal position
+    if state.difficulty == "medium" and random.random() < 0.2:  # 20% chance to be less accurate
+        target_x += random.uniform(-40, 40)  # Moderate miss range
     
     # Clamp final target to table bounds
     target_x = max(

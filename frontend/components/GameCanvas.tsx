@@ -40,10 +40,10 @@ interface GameCanvasProps {
 const AI_UPDATE_INTERVAL = 50 // ms
 const PADDLE_SPEED = 600 // Increased paddle speed for more responsive gameplay
 
-// Difficulty-based AI paddle speed multipliers
+// Difficulty-based AI paddle speed multipliers (made easier)
 const AI_SPEED_MULTIPLIERS = {
-  easy: 0.4,    // Much slower for easy mode
-  medium: 0.7,  // Moderate speed
+  easy: 0.25,   // Very slow - easy to beat
+  medium: 0.5,  // Slower - more beatable
   hard: 1.0,    // Full speed
 }
 

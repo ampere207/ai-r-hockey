@@ -29,8 +29,8 @@ This is a fully playable 2D air hockey game where you compete against an AI oppo
 ### AI Opponent
 - **Heuristic Rule-based Prediction**: Advanced algorithm that predicts puck trajectories and calculates optimal intercept points
 - **Three Difficulty Levels**:
-  - **Easy**: 40% speed, large errors (±50px), 0.2s delay - Perfect for beginners
-  - **Medium**: 70% speed, moderate errors (±20px), 0.1s delay - Balanced challenge
+  - **Easy**: 25% speed, large errors (±80px), 0.3s delay, 50% miss chance - Very easy, perfect for beginners
+  - **Medium**: 50% speed, moderate errors (±40px), 0.15s delay, 20% miss chance - Moderate challenge, beatable
   - **Hard**: 100% speed, minimal errors (±5px), instant reactions - Maximum challenge
 - **Smart Behavior**: 
   - Actively hits idle pucks in AI's court
@@ -192,11 +192,11 @@ ai-r-hockey/
 
 ### Difficulty Levels
 
-| Level | Speed | Noise | Delay | Best For |
-|-------|-------|-------|-------|----------|
-| **Easy** | 40% | ±50px | 0.2s | Beginners, learning |
-| **Medium** | 70% | ±20px | 0.1s | Balanced gameplay |
-| **Hard** | 100% | ±5px | 0s | Maximum challenge |
+| Level | Speed | Noise | Delay | Miss Chance | Best For |
+|-------|-------|-------|-------|-------------|----------|
+| **Easy** | 25% | ±80px | 0.3s | 50% | Beginners, learning, casual play |
+| **Medium** | 50% | ±40px | 0.15s | 20% | Balanced gameplay, beatable |
+| **Hard** | 100% | ±5px | 0s | 0% | Maximum challenge |
 
 ### AI Modes
 

@@ -178,13 +178,43 @@ export function clientSideAi(state: GameState): AiResponsePayload {
   let targetX: number
   let targetY: number
 
+  // Apply difficulty modifiers (matching backend)
+  const difficultyConfig = {
+    easy: {
+      noiseRange: 80.0,
+      humanVariation: 60.0,
+      missChance: 0.5,
+      missRange: 50,
+    },
+    medium: {
+      noiseRange: 40.0,
+      humanVariation: 35.0,
+      missChance: 0.2,
+      missRange: 40,
+    },
+    hard: {
+      noiseRange: 5.0,
+      humanVariation: 8.0,
+      missChance: 0.0,
+      missRange: 0,
+    },
+  }
+  
+  const config = difficultyConfig[state.difficulty]
+
   // If puck is idle in AI's court, actively hit it!
   if (puckIsIdle && puckInAiCourt) {
-    // Add human-like variation
-    const humanError = Math.random() * 30 - 15
+    // Add human-like variation (larger for easier modes)
+    const humanError = Math.random() * config.humanVariation - config.humanVariation / 2
     
     // Position to hit puck downward with force
     targetX = puck.x + humanError
+    
+    // Easy/medium modes sometimes miss
+    if (Math.random() < config.missChance) {
+      targetX += Math.random() * config.missRange * 2 - config.missRange
+    }
+    
     targetY = puck.y - 25
     
     targetX = Math.max(
@@ -211,14 +241,24 @@ export function clientSideAi(state: GameState): AiResponsePayload {
       }
       
       const t = (interceptY - puck.y) / puck.vy
-      const predictedX = puck.x + puck.vx * t
+      let predictedX = puck.x + puck.vx * t
+      
+      // Add noise based on difficulty
+      const noise = Math.random() * config.noiseRange - config.noiseRange / 2
+      const humanVariation = Math.random() * config.humanVariation - config.humanVariation / 2
+      predictedX += noise + humanVariation * 0.3
       
       // If close to puck, aim slightly ahead
       if (distanceToPuck < 150) {
-        const humanError = Math.random() * 20 - 10
+        const humanError = Math.random() * config.humanVariation - config.humanVariation / 2
         targetX = puck.x + puck.vx * 0.1 + humanError
       } else {
         targetX = predictedX
+      }
+      
+      // Easy/medium modes sometimes miss
+      if (Math.random() < config.missChance) {
+        targetX += Math.random() * config.missRange * 2 - config.missRange
       }
       
       targetX = Math.max(
@@ -231,8 +271,14 @@ export function clientSideAi(state: GameState): AiResponsePayload {
       )
     } else {
       // Puck not moving horizontally, hit it!
-      const humanError = Math.random() * 40 - 20
+      const humanError = Math.random() * config.humanVariation - config.humanVariation / 2
       targetX = puck.x + humanError
+      
+      // Easy/medium modes sometimes miss
+      if (Math.random() < config.missChance) {
+        targetX += Math.random() * config.missRange * 2 - config.missRange
+      }
+      
       targetY = puck.y - 30
       
       targetX = Math.max(
@@ -252,7 +298,12 @@ export function clientSideAi(state: GameState): AiResponsePayload {
     } else {
       const interceptY = centerLineY * 0.3
       const t = (interceptY - puck.y) / puck.vy
-      const predictedX = puck.x + puck.vx * t
+      let predictedX = puck.x + puck.vx * t
+      
+      // Add noise based on difficulty
+      const noise = Math.random() * config.noiseRange - config.noiseRange / 2
+      predictedX += noise
+      
       targetX = Math.max(
         paddleRadius,
         Math.min(tableWidth - paddleRadius, predictedX)
